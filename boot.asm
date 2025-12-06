@@ -46,6 +46,10 @@ _start:
     ; Set up stack
     mov esp, stack_top
 
+    ; Call the kernel early main function to initialise everything
+    extern kernel_early_main
+    call kernel_early_main
+
     ; Call the kernel C entry point
     extern kernel_main
     call kernel_main

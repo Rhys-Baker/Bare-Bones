@@ -138,11 +138,19 @@ void terminal_writestring(const char* data){
 	terminal_write(data, strlen(data));
 }
 
-void kernel_main(void){
-	/* Initialize terminal interface */
-	terminal_initialize();
 
-	/* Newline support is left as an exercise. */
+/// @brief Called before kernel_main. Used to initialse heap, log, etc
+void kernel_early_main(void){
+	// Currently does nothing but return
+	
+	return;
+}
+
+void kernel_main(void){
+	// Initialize terminal interface
+	terminal_initialize();
+	
+	// Write some test strings
 	terminal_writestring("Hello, kernel World!\n");
 	terminal_writestring("This is on the next line.\n");
 	terminal_writestring("And \x1B\x0ATHIS\x1B\x0F is a different color.\n");
