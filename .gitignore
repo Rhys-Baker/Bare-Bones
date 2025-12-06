@@ -1,0 +1,7 @@
+iso
+.vscode
+.devcontainer
+boot.o
+kernel.o
+myos.bin
+myos.iso
