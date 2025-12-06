@@ -1,13 +1,22 @@
-CC := i686-elf-gcc
-CFLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+CC = i686-elf-gcc
+CFLAGS = -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+# Get the path to crtbegin.o and crtend.o
+CRTBEGIN_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
+
+
 # Use the compiler as the linker
-LD := i686-elf-gcc
-LFLAGS := -ffreestanding -O2 -nostdlib -lgcc
+LD = i686-elf-gcc
+LFLAGS = -ffreestanding -O2 -nostdlib -lgcc
 
-AS := i686-elf-as
-AFLAGS :=
+AS = nasm
+AFLAGS = -f elf32
 
-OSNAME := myos
+
+INTERNAL_OBJS = boot.o kernel.o
+OBJ_LIST = $(CRTBEGIN_OBJ) $(INTERNAL_OBJS) $(CRTEND_OBJ)
+
+OSNAME = myos
 
 all: iso
 bin: $(OSNAME).bin
@@ -20,14 +29,16 @@ clean:
 
 .PHONY: all bin iso clean
 
-boot.o:
-	$(AS) $(AFLAGS) boot.s -o boot.o
+# Assemble .asm files
+%.o: %.asm
+	$(AS) $(AFLAGS) $< -o $@
 
-kernel.o:
-	$(CC) $(CFLAGS) -c kernel.c -o kernel.o
+# Compile .c files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OSNAME).bin: boot.o kernel.o
-	$(LD) $(LFLAGS) -T linker.ld -o myos.bin boot.o kernel.o
+$(OSNAME).bin: $(OBJ_LIST)
+	$(LD) $(LFLAGS) -T linker.ld -o myos.bin $(OBJ_LIST)
 
 # Create the multiboot iso
 $(OSNAME).iso: $(OSNAME).bin grub.cfg
