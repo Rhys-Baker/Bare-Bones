@@ -46,7 +46,7 @@ size_t strlen(const char* str){
 
 #define VGA_WIDTH   80
 #define VGA_HEIGHT  25
-#define VGA_MEMORY  0xB8000 
+#define VGA_MEMORY  0xB8000
 
 size_t terminal_row;
 size_t terminal_column;
@@ -56,7 +56,7 @@ uint16_t* terminal_buffer = (uint16_t*)VGA_MEMORY;
 void terminal_initialize(void){
 	terminal_row = 0;
 	terminal_column = 0;
-	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+	terminal_color = vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
 	
 	for (size_t y = 0; y < VGA_HEIGHT; y++) {
 		for (size_t x = 0; x < VGA_WIDTH; x++) {
@@ -80,12 +80,26 @@ void terminal_putentryat(char c, vga_color color, size_t x, size_t y){
 	terminal_buffer[index] = vga_entry(c, color);
 }
 
-void terminal_putchar(char c) 
-{
+/// @brief Scroll the terminal down by one line. Does not affect cursor position
+void terminal_scroll(){
+	for(int row=0; row<VGA_HEIGHT-1; row++){
+		for(int col=0; col<VGA_WIDTH; col++){
+			terminal_buffer[(VGA_WIDTH*row) + col] = terminal_buffer[(VGA_WIDTH*(row+1))+col];
+		}
+	}
+	for(int i=0; i<VGA_WIDTH; i++){
+		terminal_buffer[(VGA_WIDTH*(VGA_HEIGHT-1)) + i] = ' ';
+	}
+}
+
+/// @brief Print a character to the terminal at the current cursor position.
+/// @param c Character to print
+void terminal_putchar(char c){
 	// Newline
 	if(c == '\n'){
 		if (++terminal_row == VGA_HEIGHT){
-			terminal_row = 0;
+			terminal_scroll();
+			terminal_row--;
 		}
 		terminal_column = 0;
 		return;
@@ -94,15 +108,30 @@ void terminal_putchar(char c)
 	terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
 	if (++terminal_column == VGA_WIDTH) {
 		terminal_column = 0;
-		if (++terminal_row == VGA_HEIGHT)
-			terminal_row = 0;
+		if (++terminal_row == VGA_HEIGHT){
+			terminal_scroll();
+			terminal_row--;
+		}
 	}
 }
 
-void terminal_write(const char* data, size_t size) 
-{
-	for (size_t i = 0; i < size; i++)
+void terminal_write(const char* data, size_t size){
+	bool escaped = false;
+	for (size_t i = 0; i < size; i++){
+		if(escaped){
+			terminal_color = data[i];
+			escaped = false;
+			continue;
+		}
+
+		if(data[i] == '\x1B'){
+			// Escape character for color codes
+			escaped=true;
+			continue;
+		}
+		// If character is printable, print it
 		terminal_putchar(data[i]);
+	}
 }
 
 void terminal_writestring(const char* data){
@@ -116,4 +145,5 @@ void kernel_main(void){
 	/* Newline support is left as an exercise. */
 	terminal_writestring("Hello, kernel World!\n");
 	terminal_writestring("This is on the next line.\n");
+	terminal_writestring("And \x1B\x0ATHIS\x1B\x0F is a different color.\n");
 }
